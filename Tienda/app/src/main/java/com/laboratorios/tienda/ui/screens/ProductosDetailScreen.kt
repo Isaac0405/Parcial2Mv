@@ -10,29 +10,49 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.laboratorios.tienda.viewmodel.ProductoViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun ProductDetailScreen(navController: NavController, viewModel: ProductoViewModel, productId: Int) {
-    val producto = viewModel.getProductById(productId)
-    producto?.let {
-        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-            Image(
-                painter = rememberAsyncImagePainter(it.imageUrl),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth().height(200.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(it.name, style = MaterialTheme.typography.headlineSmall)
-            Text("${it.category} - $${it.price}")
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(it.description)
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
-                onClick = { viewModel.addToCart(it.id) },
-                enabled = !it.addedToCart
+    val product = viewModel.getProductById(productId)
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    product?.let {
+        Scaffold(
+            snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(16.dp)
             ) {
-                Text(if (it.addedToCart) "Ya en el carrito" else "Agregar al carrito")
+                Image(
+                    painter = rememberAsyncImagePainter(it.imageUrl),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxWidth().height(200.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(it.name, style = MaterialTheme.typography.headlineSmall)
+                Text("${it.category} - $${it.price}")
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(it.description)
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = {
+                        if (!it.addedToCart) {
+                            viewModel.addToCart(it.id)
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Producto agregado al carrito")
+                            }
+                        }
+                    },
+                    enabled = !it.addedToCart
+                ) {
+                    Text(if (it.addedToCart) "Ya en el carrito" else "Agregar al carrito")
+                }
             }
         }
     }
